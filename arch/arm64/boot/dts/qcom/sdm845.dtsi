@@ -707,12 +707,7 @@
 			opp-peak-kBps = <7216000 22425600>;
 		};
 
-		cpu4_opp31: opp-2745600000 {
-			opp-hz = /bits/ 64 <2745600000>;
-			opp-peak-kBps = <7216000 25497600>;
-		};
-
-		cpu4_opp33: opp-3000000000 {
+		cpu4_opp31: opp-3000000000 {
 		cpu-supply = <&vdd_a>;
 		opp-microvolt = <1250000>;
 		opp-hz = /bits/ 64 <3000000000>;
