@@ -22,8 +22,8 @@
 #include <linux/of_device.h>
 #include <linux/cpu_cooling.h>
 
-#define CPUFREQ_INCOMPATIBLE            (2)
-#define CPUFREQ_STICKY                          BIT(0)
+#define CPUFREQ_INCOMPATIBLE		(2)
+#define CPUFREQ_STICKY			BIT(0)
 
 static DEFINE_MUTEX(l2bw_lock);
 
@@ -63,7 +63,7 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq,
 	cpufreq_freq_transition_end(policy, &freqs, ret);
 	if (!ret) {
 		arch_set_freq_scale(policy->related_cpus, new_freq,
-				    policy->cpuinfo.max_freq);
+					policy->cpuinfo.max_freq);
 	}
 
 	return ret;
@@ -274,7 +274,12 @@ static struct cpufreq_frequency_table *cpufreq_parse_dt(struct device *dev,
 	for (i = 0; i < nf; i++) {
 		unsigned long f;
 
-		f = clk_round_rate(cpu_clk[cpu], data[i] * 1000);
+		// MODIFICACIÓN CLAVE: NO USAR clk_round_rate
+		// Original: f = clk_round_rate(cpu_clk[cpu], data[i] * 1000);
+		// El valor de frecuencia (en kHz) está en data[i]. Lo multiplicamos por 1000 para pasar a Hz.
+		// NO DEBE USARSE clk_round_rate si se quiere sobrepasar el limite del DTBO/Hardware Clock Controller.
+		// Solo aceptamos la frecuencia tal como está en el DTSI.
+		f = data[i] * 1000;
 		if (IS_ERR_VALUE(f))
 			break;
 		f /= 1000;
