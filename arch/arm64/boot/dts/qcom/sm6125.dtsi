@@ -583,4 +583,6 @@
 				GIC_PPI 0 0xf08>;
 		clock-frequency = <19200000>;
 	};
+#include "khaje-cpu-opp-custom.dtsi"
+#include "khaje-gpu-custom.dtsi"
 };
