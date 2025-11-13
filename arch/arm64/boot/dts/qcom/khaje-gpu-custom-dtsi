@@ -1,0 +1,164 @@
+
+# ============================================================================
+# GPU (ADRENO 610) DEVICE TREE MODIFICATIONS
+# Файл: arch/arm64/boot/dts/qcom/khaje-gpu.dtsi
+# ============================================================================
+
+&kgsl_3d0 {
+    status = "ok";
+
+    /* Расширенные power levels для разгона */
+    qcom,gpu-pwrlevels-custom {
+        compatible = "qcom,gpu-pwrlevel-bins";
+        qcom,speed-bin = <0xEB>; /* Все speed bins кроме самых слабых */
+        qcom,ca-target-pwrlevel = <6>;
+        qcom,initial-pwrlevel = <9>; /* Начинаем с самого низкого */
+
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        /* LEVEL 0 - MAXIMUM OVERCLOCKED */
+        qcom,gpu-pwrlevel@0 {
+            reg = <0>;
+            qcom,gpu-freq = <1400000000>; /* 1400 MHz - ЭКСТРЕМАЛЬНЫЙ разгон */
+            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
+            qcom,bus-freq = <11>; /* Maximum DDR bandwidth */
+            qcom,bus-min = <9>;
+            qcom,bus-max = <11>;
+        };
+
+        /* LEVEL 1 - HIGH OVERCLOCKED */
+        qcom,gpu-pwrlevel@1 {
+            reg = <1>;
+            qcom,gpu-freq = <1350000000>; /* 1350 MHz - безопасный разгон */
+            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
+            qcom,bus-freq = <10>;
+            qcom,bus-min = <8>;
+            qcom,bus-max = <11>;
+        };
+
+        /* LEVEL 2 - SD685 STOCK TURBO */
+        qcom,gpu-pwrlevel@2 {
+            reg = <2>;
+            qcom,gpu-freq = <1257600000>; /* 1260 MHz - stock SD685 */
+            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO>;
+            qcom,bus-freq = <9>;
+            qcom,bus-min = <7>;
+            qcom,bus-max = <10>;
+        };
+
+        /* LEVEL 3 - HIGH PERFORMANCE */
+        qcom,gpu-pwrlevel@3 {
+            reg = <3>;
+            qcom,gpu-freq = <1113600000>; /* 1114 MHz - SD680 max */
+            qcom,level = <RPMH_REGULATOR_LEVEL_NOM_L1>;
+            qcom,bus-freq = <8>;
+            qcom,bus-min = <6>;
+            qcom,bus-max = <9>;
+        };
+
+        /* LEVEL 4 - NOMINAL */
+        qcom,gpu-pwrlevel@4 {
+            reg = <4>;
+            qcom,gpu-freq = <1024000000>; /* 1024 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_NOM>;
+            qcom,bus-freq = <7>;
+            qcom,bus-min = <5>;
+            qcom,bus-max = <8>;
+        };
+
+        /* LEVEL 5 - SVS L1 */
+        qcom,gpu-pwrlevel@5 {
+            reg = <5>;
+            qcom,gpu-freq = <787200000>; /* 787 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+            qcom,bus-freq = <6>;
+            qcom,bus-min = <4>;
+            qcom,bus-max = <7>;
+        };
+
+        /* LEVEL 6 - SVS */
+        qcom,gpu-pwrlevel@6 {
+            reg = <6>;
+            qcom,gpu-freq = <598000000>; /* 598 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_SVS>;
+            qcom,bus-freq = <5>;
+            qcom,bus-min = <3>;
+            qcom,bus-max = <6>;
+        };
+
+        /* LEVEL 7 - LOW SVS */
+        qcom,gpu-pwrlevel@7 {
+            reg = <7>;
+            qcom,gpu-freq = <460800000>; /* 461 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+            qcom,bus-freq = <4>;
+            qcom,bus-min = <2>;
+            qcom,bus-max = <5>;
+        };
+
+        /* LEVEL 8 - MIN SVS */
+        qcom,gpu-pwrlevel@8 {
+            reg = <8>;
+            qcom,gpu-freq = <320000000>; /* 320 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_MIN_SVS>;
+            qcom,bus-freq = <3>;
+            qcom,bus-min = <1>;
+            qcom,bus-max = <4>;
+        };
+
+        /* LEVEL 9 - IDLE */
+        qcom,gpu-pwrlevel@9 {
+            reg = <9>;
+            qcom,gpu-freq = <0>;
+            qcom,level = <RPMH_REGULATOR_LEVEL_RETENTION>;
+            qcom,bus-freq = <0>;
+            qcom,bus-min = <0>;
+            qcom,bus-max = <0>;
+        };
+    };
+
+    /* Bus bandwidth scaling table - расширенная */
+    qcom,bus-table-ddr = <0>,         /* OFF */
+                         <381988>,    /* 1. 100 MHz */
+                         <572662>,    /* 2. 150 MHz */
+                         <762939>,    /* 3. 200 MHz */
+                         <1144408>,   /* 4. 300 MHz */
+                         <1720729>,   /* 5. 451 MHz */
+                         <2086496>,   /* 6. 547 MHz */
+                         <2929152>,   /* 7. 768 MHz */
+                         <5161875>,   /* 8. 1017 MHz */
+                         <7219200>,   /* 9. 1555 MHz */
+                         <10944000>,  /* 10. 2092 MHz */
+                         <14928000>;  /* 11. 2736 MHz - MAXIMUM */
+
+    qcom,bus-table-cnoc = <0>,   /* OFF */
+                          <100>; /* Active */
+
+    /* Увеличиваем CAF (Content Adaptive Framerate) параметры */
+    qcom,ca-target-pwrlevel = <6>;
+    qcom,ca-busy-penalty = <12000>; /* Было 12000, держим */
+
+    /* PM QoS latency для быстрого выхода из idle */
+    qcom,pm-qos-wakeup-latency = <100>; /* Уменьшено с 422 */
+    qcom,pm-qos-active-latency = <100>;
+
+    /* Thermal mitigation - более агрессивные лимиты */
+    qcom,throttle-pwrlevel = <3>; /* Начинаем троттлить только с уровня 3 */
+
+    /* GPU CX IPeak - пиковое потребление для interconnect */
+    qcom,gpu-cx-ipeak@0 {
+        qcom,gpu-cx-ipeak-freq = <1400000000>;
+        qcom,gpu-cx-ipeak = <&cxip_cdev 10>; /* Максимальный priority */
+    };
+
+    qcom,gpu-cx-ipeak@1 {
+        qcom,gpu-cx-ipeak-freq = <1350000000>;
+        qcom,gpu-cx-ipeak = <&cxip_cdev 8>;
+    };
+
+    qcom,gpu-cx-ipeak@2 {
+        qcom,gpu-cx-ipeak-freq = <1257600000>;
+        qcom,gpu-cx-ipeak = <&cxip_cdev 6>;
+    };
+};
