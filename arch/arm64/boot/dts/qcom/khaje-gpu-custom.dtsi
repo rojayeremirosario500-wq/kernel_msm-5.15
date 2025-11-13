@@ -1,164 +1,157 @@
 
 # ============================================================================
-# GPU (ADRENO 610) DEVICE TREE MODIFICATIONS
-# Файл: arch/arm64/boot/dts/qcom/khaje-gpu.dtsi
+# КОМПЛЕКСНЫЕ МОДИФИКАЦИИ DEVICE TREE ДЛЯ SNAPDRAGON 685 (SM6225-AD)
 # ============================================================================
 
-&kgsl_3d0 {
-    status = "ok";
+## 1. CPU OPP TABLES - РАСШИРЕННЫЕ ЧАСТОТЫ И НАПРЯЖЕНИЯ
+## Файл: arch/arm64/boot/dts/qcom/khaje-cpu-opp.dtsi
 
-    /* Расширенные power levels для разгона */
-    qcom,gpu-pwrlevels-custom {
-        compatible = "qcom,gpu-pwrlevel-bins";
-        qcom,speed-bin = <0xEB>; /* Все speed bins кроме самых слабых */
-        qcom,ca-target-pwrlevel = <6>;
-        qcom,initial-pwrlevel = <9>; /* Начинаем с самого низкого */
+/ {
+    /* Silver Cluster (Cortex-A53) - Extended OPP Table */
+    cpu-opp-table-silver-custom: cpu-opp-table-silver-oc {
+        compatible = "operating-points-v2";
+        opp-shared;
 
-        #address-cells = <1>;
-        #size-cells = <0>;
-
-        /* LEVEL 0 - MAXIMUM OVERCLOCKED */
-        qcom,gpu-pwrlevel@0 {
-            reg = <0>;
-            qcom,gpu-freq = <1400000000>; /* 1400 MHz - ЭКСТРЕМАЛЬНЫЙ разгон */
-            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
-            qcom,bus-freq = <11>; /* Maximum DDR bandwidth */
-            qcom,bus-min = <9>;
-            qcom,bus-max = <11>;
+        /* Базовые частоты (Stock) */
+        opp-300000000 {
+            opp-hz = /bits/ 64 <300000000>;
+            opp-microvolt = <600000 580000 620000>; /* target min max */
+            clock-latency-ns = <200000>;
+            opp-suspend;
         };
 
-        /* LEVEL 1 - HIGH OVERCLOCKED */
-        qcom,gpu-pwrlevel@1 {
-            reg = <1>;
-            qcom,gpu-freq = <1350000000>; /* 1350 MHz - безопасный разгон */
-            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
-            qcom,bus-freq = <10>;
-            qcom,bus-min = <8>;
-            qcom,bus-max = <11>;
+        opp-576000000 {
+            opp-hz = /bits/ 64 <576000000>;
+            opp-microvolt = <650000 630000 670000>;
+            clock-latency-ns = <200000>;
         };
 
-        /* LEVEL 2 - SD685 STOCK TURBO */
-        qcom,gpu-pwrlevel@2 {
-            reg = <2>;
-            qcom,gpu-freq = <1257600000>; /* 1260 MHz - stock SD685 */
-            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO>;
-            qcom,bus-freq = <9>;
-            qcom,bus-min = <7>;
-            qcom,bus-max = <10>;
+        opp-768000000 {
+            opp-hz = /bits/ 64 <768000000>;
+            opp-microvolt = <700000 680000 720000>;
+            clock-latency-ns = <200000>;
         };
 
-        /* LEVEL 3 - HIGH PERFORMANCE */
-        qcom,gpu-pwrlevel@3 {
-            reg = <3>;
-            qcom,gpu-freq = <1113600000>; /* 1114 MHz - SD680 max */
-            qcom,level = <RPMH_REGULATOR_LEVEL_NOM_L1>;
-            qcom,bus-freq = <8>;
-            qcom,bus-min = <6>;
-            qcom,bus-max = <9>;
+        opp-1017600000 {
+            opp-hz = /bits/ 64 <1017600000>;
+            opp-microvolt = <750000 730000 770000>;
+            clock-latency-ns = <200000>;
         };
 
-        /* LEVEL 4 - NOMINAL */
-        qcom,gpu-pwrlevel@4 {
-            reg = <4>;
-            qcom,gpu-freq = <1024000000>; /* 1024 MHz */
-            qcom,level = <RPMH_REGULATOR_LEVEL_NOM>;
-            qcom,bus-freq = <7>;
-            qcom,bus-min = <5>;
-            qcom,bus-max = <8>;
+        opp-1197000000 {
+            opp-hz = /bits/ 64 <1197000000>;
+            opp-microvolt = <800000 780000 820000>;
+            clock-latency-ns = <200000>;
         };
 
-        /* LEVEL 5 - SVS L1 */
-        qcom,gpu-pwrlevel@5 {
-            reg = <5>;
-            qcom,gpu-freq = <787200000>; /* 787 MHz */
-            qcom,level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
-            qcom,bus-freq = <6>;
-            qcom,bus-min = <4>;
-            qcom,bus-max = <7>;
+        /* Stock maximum */
+        opp-1900800000 {
+            opp-hz = /bits/ 64 <1900800000>;
+            opp-microvolt = <1000000 980000 1020000>;
+            clock-latency-ns = <200000>;
         };
 
-        /* LEVEL 6 - SVS */
-        qcom,gpu-pwrlevel@6 {
-            reg = <6>;
-            qcom,gpu-freq = <598000000>; /* 598 MHz */
-            qcom,level = <RPMH_REGULATOR_LEVEL_SVS>;
-            qcom,bus-freq = <5>;
-            qcom,bus-min = <3>;
-            qcom,bus-max = <6>;
-        };
-
-        /* LEVEL 7 - LOW SVS */
-        qcom,gpu-pwrlevel@7 {
-            reg = <7>;
-            qcom,gpu-freq = <460800000>; /* 461 MHz */
-            qcom,level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
-            qcom,bus-freq = <4>;
-            qcom,bus-min = <2>;
-            qcom,bus-max = <5>;
-        };
-
-        /* LEVEL 8 - MIN SVS */
-        qcom,gpu-pwrlevel@8 {
-            reg = <8>;
-            qcom,gpu-freq = <320000000>; /* 320 MHz */
-            qcom,level = <RPMH_REGULATOR_LEVEL_MIN_SVS>;
-            qcom,bus-freq = <3>;
-            qcom,bus-min = <1>;
-            qcom,bus-max = <4>;
-        };
-
-        /* LEVEL 9 - IDLE */
-        qcom,gpu-pwrlevel@9 {
-            reg = <9>;
-            qcom,gpu-freq = <0>;
-            qcom,level = <RPMH_REGULATOR_LEVEL_RETENTION>;
-            qcom,bus-freq = <0>;
-            qcom,bus-min = <0>;
-            qcom,bus-max = <0>;
+        /* OVERCLOCKED LEVELS */
+        opp-2000000000 {
+            opp-hz = /bits/ 64 <2000000000>; /* +5% от 1900 MHz */
+            opp-microvolt = <1050000 1030000 1070000>;
+            clock-latency-ns = <250000>;
+            opp-supported-hw = <0xFF>; /* Все speed bins */
+            turbo-mode;
         };
     };
 
-    /* Bus bandwidth scaling table - расширенная */
-    qcom,bus-table-ddr = <0>,         /* OFF */
-                         <381988>,    /* 1. 100 MHz */
-                         <572662>,    /* 2. 150 MHz */
-                         <762939>,    /* 3. 200 MHz */
-                         <1144408>,   /* 4. 300 MHz */
-                         <1720729>,   /* 5. 451 MHz */
-                         <2086496>,   /* 6. 547 MHz */
-                         <2929152>,   /* 7. 768 MHz */
-                         <5161875>,   /* 8. 1017 MHz */
-                         <7219200>,   /* 9. 1555 MHz */
-                         <10944000>,  /* 10. 2092 MHz */
-                         <14928000>;  /* 11. 2736 MHz - MAXIMUM */
+    /* Gold Cluster (Cortex-A73) - Extended OPP Table */
+    cpu-opp-table-gold-custom: cpu-opp-table-gold-oc {
+        compatible = "operating-points-v2";
+        opp-shared;
 
-    qcom,bus-table-cnoc = <0>,   /* OFF */
-                          <100>; /* Active */
+        /* Базовые частоты */
+        opp-300000000 {
+            opp-hz = /bits/ 64 <300000000>;
+            opp-microvolt = <600000 580000 620000>;
+            clock-latency-ns = <200000>;
+            opp-suspend;
+        };
 
-    /* Увеличиваем CAF (Content Adaptive Framerate) параметры */
-    qcom,ca-target-pwrlevel = <6>;
-    qcom,ca-busy-penalty = <12000>; /* Было 12000, держим */
+        opp-652800000 {
+            opp-hz = /bits/ 64 <652800000>;
+            opp-microvolt = <650000 630000 670000>;
+            clock-latency-ns = <200000>;
+        };
 
-    /* PM QoS latency для быстрого выхода из idle */
-    qcom,pm-qos-wakeup-latency = <100>; /* Уменьшено с 422 */
-    qcom,pm-qos-active-latency = <100>;
+        opp-940800000 {
+            opp-hz = /bits/ 64 <940800000>;
+            opp-microvolt = <700000 680000 720000>;
+            clock-latency-ns = <200000>;
+        };
 
-    /* Thermal mitigation - более агрессивные лимиты */
-    qcom,throttle-pwrlevel = <3>; /* Начинаем троттлить только с уровня 3 */
+        opp-1152000000 {
+            opp-hz = /bits/ 64 <1152000000>;
+            opp-microvolt = <750000 730000 770000>;
+            clock-latency-ns = <200000>;
+        };
 
-    /* GPU CX IPeak - пиковое потребление для interconnect */
-    qcom,gpu-cx-ipeak@0 {
-        qcom,gpu-cx-ipeak-freq = <1400000000>;
-        qcom,gpu-cx-ipeak = <&cxip_cdev 10>; /* Максимальный priority */
-    };
+        opp-1478400000 {
+            opp-hz = /bits/ 64 <1478400000>;
+            opp-microvolt = <800000 780000 820000>;
+            clock-latency-ns = <200000>;
+        };
 
-    qcom,gpu-cx-ipeak@1 {
-        qcom,gpu-cx-ipeak-freq = <1350000000>;
-        qcom,gpu-cx-ipeak = <&cxip_cdev 8>;
-    };
+        opp-1728000000 {
+            opp-hz = /bits/ 64 <1728000000>;
+            opp-microvolt = <850000 830000 870000>;
+            clock-latency-ns = <200000>;
+        };
 
-    qcom,gpu-cx-ipeak@2 {
-        qcom,gpu-cx-ipeak-freq = <1257600000>;
-        qcom,gpu-cx-ipeak = <&cxip_cdev 6>;
+        opp-1996800000 {
+            opp-hz = /bits/ 64 <1996800000>;
+            opp-microvolt = <900000 880000 920000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-2208000000 {
+            opp-hz = /bits/ 64 <2208000000>;
+            opp-microvolt = <950000 930000 970000>;
+            clock-latency-ns = <200000>;
+        };
+
+        /* Stock для SD685 */
+        opp-2803200000 {
+            opp-hz = /bits/ 64 <2803200000>;
+            opp-microvolt = <1100000 1080000 1120000>;
+            clock-latency-ns = <200000>;
+            turbo-mode;
+        };
+
+        /* OVERCLOCKED LEVELS */
+        opp-2950000000 {
+            opp-hz = /bits/ 64 <2950000000>; /* +5% от 2800 MHz */
+            opp-microvolt = <1150000 1130000 1170000>;
+            clock-latency-ns = <250000>;
+            opp-supported-hw = <0xFF>;
+            turbo-mode;
+        };
+
+        opp-3000000000 {
+            opp-hz = /bits/ 64 <3000000000>; /* +7% от 2800 MHz */
+            opp-microvolt = <1200000 1180000 1220000>; /* КРИТИЧЕСКИЙ уровень! */
+            clock-latency-ns = <300000>;
+            opp-supported-hw = <0xEB>; /* Только лучшие speed bins */
+            turbo-mode;
+        };
     };
 };
+
+/* Привязка OPP к CPU ядрам */
+&cpu0 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+&cpu1 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+&cpu2 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+&cpu3 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+
+&cpu100 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+&cpu101 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+&cpu102 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+&cpu103 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+
+
