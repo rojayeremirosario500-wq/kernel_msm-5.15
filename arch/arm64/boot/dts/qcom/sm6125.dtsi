@@ -8,6 +8,8 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/power/qcom-rpmpd.h>
+#include "khaje-cpu-opp.dtsi"
+#include "khaje-interconnect.dtsi"
 
 / {
 	interrupt-parent = <&intc>;
@@ -583,6 +585,4 @@
 				GIC_PPI 0 0xf08>;
 		clock-frequency = <19200000>;
 	};
-#include "khaje-cpu-opp-custom.dtsi"
-#include "khaje-gpu-custom.dtsi"
 };
