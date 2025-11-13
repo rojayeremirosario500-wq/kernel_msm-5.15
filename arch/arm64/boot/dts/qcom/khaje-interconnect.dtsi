@@ -1,0 +1,379 @@
+
+# ============================================================================
+# GPU (ADRENO 610) DEVICE TREE MODIFICATIONS
+# Файл: arch/arm64/boot/dts/qcom/khaje-gpu.dtsi
+# ============================================================================
+
+&kgsl_3d0 {
+    status = "ok";
+
+    /* Расширенные power levels для разгона */
+    qcom,gpu-pwrlevels-custom {
+        compatible = "qcom,gpu-pwrlevel-bins";
+        qcom,speed-bin = <0xEB>; /* Все speed bins кроме самых слабых */
+        qcom,ca-target-pwrlevel = <6>;
+        qcom,initial-pwrlevel = <9>; /* Начинаем с самого низкого */
+
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        /* LEVEL 0 - MAXIMUM OVERCLOCKED */
+        qcom,gpu-pwrlevel@0 {
+            reg = <0>;
+            qcom,gpu-freq = <1400000000>; /* 1400 MHz - ЭКСТРЕМАЛЬНЫЙ разгон */
+            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
+            qcom,bus-freq = <11>; /* Maximum DDR bandwidth */
+            qcom,bus-min = <9>;
+            qcom,bus-max = <11>;
+        };
+
+        /* LEVEL 1 - HIGH OVERCLOCKED */
+        qcom,gpu-pwrlevel@1 {
+            reg = <1>;
+            qcom,gpu-freq = <1350000000>; /* 1350 MHz - безопасный разгон */
+            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
+            qcom,bus-freq = <10>;
+            qcom,bus-min = <8>;
+            qcom,bus-max = <11>;
+        };
+
+        /* LEVEL 2 - SD685 STOCK TURBO */
+        qcom,gpu-pwrlevel@2 {
+            reg = <2>;
+            qcom,gpu-freq = <1257600000>; /* 1260 MHz - stock SD685 */
+            qcom,level = <RPMH_REGULATOR_LEVEL_TURBO>;
+            qcom,bus-freq = <9>;
+            qcom,bus-min = <7>;
+            qcom,bus-max = <10>;
+        };
+
+        /* LEVEL 3 - HIGH PERFORMANCE */
+        qcom,gpu-pwrlevel@3 {
+            reg = <3>;
+            qcom,gpu-freq = <1113600000>; /* 1114 MHz - SD680 max */
+            qcom,level = <RPMH_REGULATOR_LEVEL_NOM_L1>;
+            qcom,bus-freq = <8>;
+            qcom,bus-min = <6>;
+            qcom,bus-max = <9>;
+        };
+
+        /* LEVEL 4 - NOMINAL */
+        qcom,gpu-pwrlevel@4 {
+            reg = <4>;
+            qcom,gpu-freq = <1024000000>; /* 1024 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_NOM>;
+            qcom,bus-freq = <7>;
+            qcom,bus-min = <5>;
+            qcom,bus-max = <8>;
+        };
+
+        /* LEVEL 5 - SVS L1 */
+        qcom,gpu-pwrlevel@5 {
+            reg = <5>;
+            qcom,gpu-freq = <787200000>; /* 787 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+            qcom,bus-freq = <6>;
+            qcom,bus-min = <4>;
+            qcom,bus-max = <7>;
+        };
+
+        /* LEVEL 6 - SVS */
+        qcom,gpu-pwrlevel@6 {
+            reg = <6>;
+            qcom,gpu-freq = <598000000>; /* 598 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_SVS>;
+            qcom,bus-freq = <5>;
+            qcom,bus-min = <3>;
+            qcom,bus-max = <6>;
+        };
+
+        /* LEVEL 7 - LOW SVS */
+        qcom,gpu-pwrlevel@7 {
+            reg = <7>;
+            qcom,gpu-freq = <460800000>; /* 461 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+            qcom,bus-freq = <4>;
+            qcom,bus-min = <2>;
+            qcom,bus-max = <5>;
+        };
+
+        /* LEVEL 8 - MIN SVS */
+        qcom,gpu-pwrlevel@8 {
+            reg = <8>;
+            qcom,gpu-freq = <320000000>; /* 320 MHz */
+            qcom,level = <RPMH_REGULATOR_LEVEL_MIN_SVS>;
+            qcom,bus-freq = <3>;
+            qcom,bus-min = <1>;
+            qcom,bus-max = <4>;
+        };
+
+        /* LEVEL 9 - IDLE */
+        qcom,gpu-pwrlevel@9 {
+            reg = <9>;
+            qcom,gpu-freq = <0>;
+            qcom,level = <RPMH_REGULATOR_LEVEL_RETENTION>;
+            qcom,bus-freq = <0>;
+            qcom,bus-min = <0>;
+            qcom,bus-max = <0>;
+        };
+    };
+
+    /* Bus bandwidth scaling table - расширенная */
+    qcom,bus-table-ddr = <0>,         /* OFF */
+                         <381988>,    /* 1. 100 MHz */
+                         <572662>,    /* 2. 150 MHz */
+                         <762939>,    /* 3. 200 MHz */
+                         <1144408>,   /* 4. 300 MHz */
+                         <1720729>,   /* 5. 451 MHz */
+                         <2086496>,   /* 6. 547 MHz */
+                         <2929152>,   /* 7. 768 MHz */
+                         <5161875>,   /* 8. 1017 MHz */
+                         <7219200>,   /* 9. 1555 MHz */
+                         <10944000>,  /* 10. 2092 MHz */
+                         <14928000>;  /* 11. 2736 MHz - MAXIMUM */
+
+    qcom,bus-table-cnoc = <0>,   /* OFF */
+                          <100>; /* Active */
+
+    /* Увеличиваем CAF (Content Adaptive Framerate) параметры */
+    qcom,ca-target-pwrlevel = <6>;
+    qcom,ca-busy-penalty = <12000>; /* Было 12000, держим */
+
+    /* PM QoS latency для быстрого выхода из idle */
+    qcom,pm-qos-wakeup-latency = <100>; /* Уменьшено с 422 */
+    qcom,pm-qos-active-latency = <100>;
+
+    /* Thermal mitigation - более агрессивные лимиты */
+    qcom,throttle-pwrlevel = <3>; /* Начинаем троттлить только с уровня 3 */
+
+    /* GPU CX IPeak - пиковое потребление для interconnect */
+    qcom,gpu-cx-ipeak@0 {
+        qcom,gpu-cx-ipeak-freq = <1400000000>;
+        qcom,gpu-cx-ipeak = <&cxip_cdev 10>; /* Максимальный priority */
+    };
+
+    qcom,gpu-cx-ipeak@1 {
+        qcom,gpu-cx-ipeak-freq = <1350000000>;
+        qcom,gpu-cx-ipeak = <&cxip_cdev 8>;
+    };
+
+    qcom,gpu-cx-ipeak@2 {
+        qcom,gpu-cx-ipeak-freq = <1257600000>;
+        qcom,gpu-cx-ipeak = <&cxip_cdev 6>;
+    };
+};
+
+# ============================================================================
+# THERMAL ZONES - ПОВЫШЕННЫЕ ЛИМИТЫ ДЛЯ РАЗГОНА
+# Файл: arch/arm64/boot/dts/qcom/khaje-thermal.dtsi
+# ============================================================================
+
+&thermal_zones {
+    /* CPU Silver thermal zone - МОДИФИЦИРОВАННАЯ */
+    cpu-thermal-silver {
+        polling-delay-passive = <50>; /* Быстрая реакция */
+        polling-delay = <1000>;
+        thermal-sensors = <&tsens0 6>;
+
+        trips {
+            /* Предупреждение - начинаем снижать частоту */
+            cpu_silver_warm: cpu-silver-warm {
+                temperature = <80000>; /* 80°C - было 75°C */
+                hysteresis = <3000>;
+                type = "passive";
+            };
+
+            /* Горячо - агрессивное снижение */
+            cpu_silver_hot: cpu-silver-hot {
+                temperature = <90000>; /* 90°C - было 85°C */
+                hysteresis = <3000>;
+                type = "hot";
+            };
+
+            /* Критический - emergency shutdown */
+            cpu_silver_critical: cpu-silver-critical {
+                temperature = <108000>; /* 108°C - было 105°C */
+                hysteresis = <2000>;
+                type = "critical";
+            };
+        };
+
+        cooling-maps {
+            /* Легкий троттлинг при 80°C */
+            map0 {
+                trip = <&cpu_silver_warm>;
+                cooling-device = <&cpu0 1 3>,
+                                 <&cpu1 1 3>,
+                                 <&cpu2 1 3>,
+                                 <&cpu3 1 3>;
+            };
+
+            /* Агрессивный троттлинг при 90°C */
+            map1 {
+                trip = <&cpu_silver_hot>;
+                cooling-device = <&cpu0 3 THERMAL_NO_LIMIT>,
+                                 <&cpu1 3 THERMAL_NO_LIMIT>,
+                                 <&cpu2 3 THERMAL_NO_LIMIT>,
+                                 <&cpu3 3 THERMAL_NO_LIMIT>;
+            };
+        };
+    };
+
+    /* CPU Gold thermal zone - МОДИФИЦИРОВАННАЯ */
+    cpu-thermal-gold {
+        polling-delay-passive = <25>; /* Очень быстрая реакция */
+        polling-delay = <1000>;
+        thermal-sensors = <&tsens0 7>;
+
+        trips {
+            cpu_gold_warm: cpu-gold-warm {
+                temperature = <75000>; /* 75°C - было 70°C */
+                hysteresis = <3000>;
+                type = "passive";
+            };
+
+            cpu_gold_hot: cpu-gold-hot {
+                temperature = <85000>; /* 85°C - было 80°C */
+                hysteresis = <3000>;
+                type = "hot";
+            };
+
+            cpu_gold_critical: cpu-gold-critical {
+                temperature = <108000>; /* 108°C - unified с silver */
+                hysteresis = <2000>;
+                type = "critical";
+            };
+        };
+
+        cooling-maps {
+            map0 {
+                trip = <&cpu_gold_warm>;
+                cooling-device = <&cpu100 1 4>,
+                                 <&cpu101 1 4>,
+                                 <&cpu102 1 4>,
+                                 <&cpu103 1 4>;
+            };
+
+            map1 {
+                trip = <&cpu_gold_hot>;
+                cooling-device = <&cpu100 4 THERMAL_NO_LIMIT>,
+                                 <&cpu101 4 THERMAL_NO_LIMIT>,
+                                 <&cpu102 4 THERMAL_NO_LIMIT>,
+                                 <&cpu103 4 THERMAL_NO_LIMIT>;
+            };
+        };
+    };
+
+    /* GPU thermal zone - ПОВЫШЕННЫЕ ЛИМИТЫ */
+    gpu-thermal {
+        polling-delay-passive = <10>; /* Очень агрессивный polling */
+        polling-delay = <1000>;
+        thermal-sensors = <&tsens0 15>;
+
+        trips {
+            gpu_warm: gpu-warm {
+                temperature = <75000>; /* 75°C - было 70°C */
+                hysteresis = <3000>;
+                type = "passive";
+            };
+
+            gpu_hot: gpu-hot {
+                temperature = <90000>; /* 90°C - было 85°C */
+                hysteresis = <3000>;
+                type = "hot";
+            };
+
+            gpu_critical: gpu-critical {
+                temperature = <110000>; /* 110°C - GPU выдерживает больше */
+                hysteresis = <2000>;
+                type = "critical";
+            };
+
+            /* GPU CX voltage monitor */
+            gpu_cx_mon: gpu-cx-mon {
+                temperature = <100000>; /* Было 100°C */
+                hysteresis = <5000>;
+                type = "passive";
+            };
+        };
+
+        cooling-maps {
+            /* Мягкий троттлинг */
+            map_warm {
+                trip = <&gpu_warm>;
+                cooling-device = <&msm_gpu 0 2>; /* Снижаем на 2 уровня */
+            };
+
+            /* Агрессивный троттлинг */
+            map_hot {
+                trip = <&gpu_hot>;
+                cooling-device = <&msm_gpu 2 THERMAL_NO_LIMIT>;
+            };
+
+            /* CX voltage регулировка при перегреве */
+            map_cx {
+                trip = <&gpu_cx_mon>;
+                cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+            };
+        };
+    };
+};
+
+# ============================================================================
+# INTERCONNECT BANDWIDTH - ПОВЫШЕННАЯ ПРОПУСКНАЯ СПОСОБНОСТЬ
+# Файл: arch/arm64/boot/dts/qcom/khaje-interconnect.dtsi
+# ============================================================================
+
+/* Увеличиваем bandwidth для GPU-DDR path */
+&gpu_bw {
+    interconnects = <&gem_noc MASTER_GFX3D &mc_virt SLAVE_EBI1>;
+    interconnect-names = "gpu_bw";
+
+    /* Расширенная таблица bandwidth */
+    qcom,bw-table-kbps =
+        <0>,        /* OFF */
+        <381988>,   /* 100 MHz */
+        <572662>,   /* 150 MHz */
+        <762939>,   /* 200 MHz */
+        <1144408>,  /* 300 MHz */
+        <1720729>,  /* 451 MHz */
+        <2086496>,  /* 547 MHz */
+        <2929152>,  /* 768 MHz */
+        <5161875>,  /* 1017 MHz - NOM */
+        <7219200>,  /* 1555 MHz - TURBO */
+        <10944000>, /* 2092 MHz - TURBO L1 */
+        <14928000>; /* 2736 MHz - MAXIMUM для OC */
+};
+
+/* Увеличиваем bandwidth для CPU-DDR path */
+&cpu_bw {
+    qcom,bw-tbl =
+        <0>,       /* 100 MHz (OFF) */
+        <769>,     /* 547 MHz */
+        <1611>,    /* 768 MHz */
+        <2929>,    /* 1017 MHz */
+        <5161>,    /* 1555 MHz */
+        <7219>,    /* 2092 MHz */
+        <10944>,   /* 2736 MHz */
+        <14928>;   /* 3196 MHz - MAXIMUM */
+};
+
+/* Camera/ISP NoC - повышенный приоритет */
+&cam_hf_mnoc {
+    qcom,bcm-voters = <&apps_bcm_voter>;
+
+    /* Увеличиваем vote weight для камеры */
+    qcom,bcm-vote-data = <&camera_ab &camera_ib>;
+    qcom,axi-port-name = "cam_hf_0";
+};
+
+/* Multimedia NoC - оптимизация для gaming */
+&mnoc {
+    qcom,msm-bus,name = "mnoc";
+    qcom,msm-bus,num-cases = <2>;
+    qcom,msm-bus,num-paths = <1>;
+    qcom,msm-bus,vectors-KBps =
+        <MASTER_MNOC_HF_MEM_NOC SLAVE_EBI1 0 0>,
+        <MASTER_MNOC_HF_MEM_NOC SLAVE_EBI1 0 14928000>; /* MAX bandwidth */
+};
+
