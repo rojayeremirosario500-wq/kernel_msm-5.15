@@ -1,0 +1,156 @@
+
+# ============================================================================
+# КОМПЛЕКСНЫЕ МОДИФИКАЦИИ DEVICE TREE ДЛЯ SNAPDRAGON 685 (SM6225-AD)
+# ============================================================================
+
+## 1. CPU OPP TABLES - РАСШИРЕННЫЕ ЧАСТОТЫ И НАПРЯЖЕНИЯ
+## Файл: arch/arm64/boot/dts/qcom/khaje-cpu-opp.dtsi
+
+/ {
+    /* Silver Cluster (Cortex-A53) - Extended OPP Table */
+    cpu-opp-table-silver-custom: cpu-opp-table-silver-oc {
+        compatible = "operating-points-v2";
+        opp-shared;
+
+        /* Базовые частоты (Stock) */
+        opp-300000000 {
+            opp-hz = /bits/ 64 <300000000>;
+            opp-microvolt = <600000 580000 620000>; /* target min max */
+            clock-latency-ns = <200000>;
+            opp-suspend;
+        };
+
+        opp-576000000 {
+            opp-hz = /bits/ 64 <576000000>;
+            opp-microvolt = <650000 630000 670000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-768000000 {
+            opp-hz = /bits/ 64 <768000000>;
+            opp-microvolt = <700000 680000 720000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-1017600000 {
+            opp-hz = /bits/ 64 <1017600000>;
+            opp-microvolt = <750000 730000 770000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-1197000000 {
+            opp-hz = /bits/ 64 <1197000000>;
+            opp-microvolt = <800000 780000 820000>;
+            clock-latency-ns = <200000>;
+        };
+
+        /* Stock maximum */
+        opp-1900800000 {
+            opp-hz = /bits/ 64 <1900800000>;
+            opp-microvolt = <1000000 980000 1020000>;
+            clock-latency-ns = <200000>;
+        };
+
+        /* OVERCLOCKED LEVELS */
+        opp-2000000000 {
+            opp-hz = /bits/ 64 <2000000000>; /* +5% от 1900 MHz */
+            opp-microvolt = <1050000 1030000 1070000>;
+            clock-latency-ns = <250000>;
+            opp-supported-hw = <0xFF>; /* Все speed bins */
+            turbo-mode;
+        };
+    };
+
+    /* Gold Cluster (Cortex-A73) - Extended OPP Table */
+    cpu-opp-table-gold-custom: cpu-opp-table-gold-oc {
+        compatible = "operating-points-v2";
+        opp-shared;
+
+        /* Базовые частоты */
+        opp-300000000 {
+            opp-hz = /bits/ 64 <300000000>;
+            opp-microvolt = <600000 580000 620000>;
+            clock-latency-ns = <200000>;
+            opp-suspend;
+        };
+
+        opp-652800000 {
+            opp-hz = /bits/ 64 <652800000>;
+            opp-microvolt = <650000 630000 670000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-940800000 {
+            opp-hz = /bits/ 64 <940800000>;
+            opp-microvolt = <700000 680000 720000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-1152000000 {
+            opp-hz = /bits/ 64 <1152000000>;
+            opp-microvolt = <750000 730000 770000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-1478400000 {
+            opp-hz = /bits/ 64 <1478400000>;
+            opp-microvolt = <800000 780000 820000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-1728000000 {
+            opp-hz = /bits/ 64 <1728000000>;
+            opp-microvolt = <850000 830000 870000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-1996800000 {
+            opp-hz = /bits/ 64 <1996800000>;
+            opp-microvolt = <900000 880000 920000>;
+            clock-latency-ns = <200000>;
+        };
+
+        opp-2208000000 {
+            opp-hz = /bits/ 64 <2208000000>;
+            opp-microvolt = <950000 930000 970000>;
+            clock-latency-ns = <200000>;
+        };
+
+        /* Stock для SD685 */
+        opp-2803200000 {
+            opp-hz = /bits/ 64 <2803200000>;
+            opp-microvolt = <1100000 1080000 1120000>;
+            clock-latency-ns = <200000>;
+            turbo-mode;
+        };
+
+        /* OVERCLOCKED LEVELS */
+        opp-2950000000 {
+            opp-hz = /bits/ 64 <2950000000>; /* +5% от 2800 MHz */
+            opp-microvolt = <1150000 1130000 1170000>;
+            clock-latency-ns = <250000>;
+            opp-supported-hw = <0xFF>;
+            turbo-mode;
+        };
+
+        opp-3000000000 {
+            opp-hz = /bits/ 64 <3000000000>; /* +7% от 2800 MHz */
+            opp-microvolt = <1200000 1180000 1220000>; /* КРИТИЧЕСКИЙ уровень! */
+            clock-latency-ns = <300000>;
+            opp-supported-hw = <0xEB>; /* Только лучшие speed bins */
+            turbo-mode;
+        };
+    };
+};
+
+/* Привязка OPP к CPU ядрам */
+&cpu0 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+&cpu1 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+&cpu2 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+&cpu3 { operating-points-v2 = <&cpu-opp-table-silver-custom>; };
+
+&cpu100 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+&cpu101 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+&cpu102 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+&cpu103 { operating-points-v2 = <&cpu-opp-table-gold-custom>; };
+
