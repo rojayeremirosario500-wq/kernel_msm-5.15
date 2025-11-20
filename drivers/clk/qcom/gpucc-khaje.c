@@ -218,18 +218,18 @@ static struct clk_rcg2 gpu_cc_gmu_clk_src = {
 };
 
 static const struct freq_tbl ftbl_gpu_cc_gx_gfx3d_clk_src[] = {
-	F(320000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(465000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(600000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(785000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(820000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(980000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(1025000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(1100000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(1114800000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(1260000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	F(1550000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-	{ }
+    F(320000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(465000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(600000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(785000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(820000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(980000000,   P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(1025000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(1100000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(1114800000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(1260000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    F(1550000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+    { }
 };
 
 static struct clk_rcg2 gpu_cc_gx_gfx3d_clk_src = {
@@ -462,18 +462,26 @@ static int gpu_cc_khaje_probe(struct platform_device *pdev)
 	unsigned int value, mask;
 	int ret;
 
+	dev_info(&pdev->dev, "Starting GPU CC probe...\n");
+
 	regmap = qcom_cc_map(pdev, &gpu_cc_khaje_desc);
-	if (IS_ERR(regmap))
+	if (IS_ERR(regmap)) {
+		dev_err(&pdev->dev, "Failed to map GPU CC regmap\n");
 		return PTR_ERR(regmap);
+	}
+	dev_info(&pdev->dev, "Regmap successfully mapped\n");
 
 	/*
 	 * Keep the clock always-ON
 	 * GPU_CC_GX_CXO_CLK
 	 */
 	regmap_update_bits(regmap, 0x1060, BIT(0), BIT(0));
+	dev_info(&pdev->dev, "GPU_CC_GX_CXO_CLK forced ON\n");
 
 	clk_zonda_pll_configure(&gpu_cc_pll0, regmap, &gpu_cc_pll0_config);
+	dev_info(&pdev->dev, "Configured GPU PLL0\n");
 	clk_lucid_pll_configure(&gpu_cc_pll1, regmap, &gpu_cc_pll1_config);
+	dev_info(&pdev->dev, "Configured GPU PLL1\n");
 
 	/* Recommended WAKEUP/SLEEP settings for the gpu_cc_cx_gmu_clk */
 	mask = CX_GMU_CBCR_WAKE_MASK << CX_GMU_CBCR_WAKE_SHIFT;
@@ -481,12 +489,14 @@ static int gpu_cc_khaje_probe(struct platform_device *pdev)
 	value = 0xf << CX_GMU_CBCR_WAKE_SHIFT | 0xf << CX_GMU_CBCR_SLEEP_SHIFT;
 	regmap_update_bits(regmap, gpu_cc_cx_gmu_clk.clkr.enable_reg,
 								mask, value);
+	dev_info(&pdev->dev, "Applied WAKE/SLEEP settings for gpu_cc_cx_gmu_clk\n");
 
-	/*(VDD_L2_HIGH_L2) */
+	/* Set VDD_L2_HIGH_L2 */
 	mask  = 0xFF;
-	value = 0xFF;
+	value = VDD_L2_HIGH_L2; // 9
 	regmap_update_bits(regmap, gpu_cc_gx_gfx3d_clk_src.clkr.enable_reg, mask, value);
 	regmap_update_bits(regmap, gpu_cc_cx_gfx3d_clk.clkr.enable_reg, mask, value);
+	dev_info(&pdev->dev, "Set VDD_L2_HIGH_L2 for GPU clocks (value=%u)\n", value);
 
 	ret = qcom_cc_really_probe(pdev, &gpu_cc_khaje_desc, regmap);
 	if (ret) {
@@ -501,7 +511,9 @@ static int gpu_cc_khaje_probe(struct platform_device *pdev)
 
 static void gpu_cc_khaje_sync_state(struct device *dev)
 {
+	dev_info(dev, "Syncing GPU CC clock state...\n");
 	qcom_cc_sync_state(dev, &gpu_cc_khaje_desc);
+	dev_info(dev, "GPU CC clock state synced\n");
 }
 
 static struct platform_driver gpu_cc_khaje_driver = {
@@ -515,12 +527,14 @@ static struct platform_driver gpu_cc_khaje_driver = {
 
 static int __init gpu_cc_khaje_init(void)
 {
+	pr_info("Initializing GPU CC Khaje driver...\n");
 	return platform_driver_register(&gpu_cc_khaje_driver);
 }
 subsys_initcall(gpu_cc_khaje_init);
 
 static void __exit gpu_cc_khaje_exit(void)
 {
+	pr_info("Exiting GPU CC Khaje driver...\n");
 	platform_driver_unregister(&gpu_cc_khaje_driver);
 }
 module_exit(gpu_cc_khaje_exit);
