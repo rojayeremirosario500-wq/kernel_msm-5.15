@@ -458,62 +458,58 @@ MODULE_DEVICE_TABLE(of, gpu_cc_khaje_match_table);
 
 static int gpu_cc_khaje_probe(struct platform_device *pdev)
 {
-	struct regmap *regmap;
-	unsigned int value, mask;
-	int ret;
+    struct regmap *regmap;
+    unsigned int value, mask;
+    int ret;
 
-	dev_info(&pdev->dev, "Starting GPU CC probe...\n");
+    dev_info(&pdev->dev, "Starting GPU CC probe...\n");
 
-	regmap = qcom_cc_map(pdev, &gpu_cc_khaje_desc);
-	if (IS_ERR(regmap)) {
-		dev_err(&pdev->dev, "Failed to map GPU CC regmap\n");
-		return PTR_ERR(regmap);
-	}
-	dev_info(&pdev->dev, "Regmap successfully mapped\n");
+    regmap = qcom_cc_map(pdev, &gpu_cc_khaje_desc);
+    if (IS_ERR(regmap)) {
+        dev_err(&pdev->dev, "Failed to map GPU CC regmap\n");
+        return PTR_ERR(regmap);
+    }
+    dev_info(&pdev->dev, "Regmap successfully mapped\n");
 
-	/*
-	 * Keep the clock always-ON
-	 * GPU_CC_GX_CXO_CLK
-	 */
-	regmap_update_bits(regmap, 0x1060, BIT(0), BIT(0));
-	dev_info(&pdev->dev, "GPU_CC_GX_CXO_CLK forced ON\n");
+    /* Keep the clock always-ON: GPU_CC_GX_CXO_CLK */
+    regmap_update_bits(regmap, 0x1060, BIT(0), BIT(0));
+    dev_info(&pdev->dev, "GPU_CC_GX_CXO_CLK forced ON\n");
 
-	clk_zonda_pll_configure(&gpu_cc_pll0, regmap, &gpu_cc_pll0_config);
-	dev_info(&pdev->dev, "Configured GPU PLL0\n");
-	clk_lucid_pll_configure(&gpu_cc_pll1, regmap, &gpu_cc_pll1_config);
-	dev_info(&pdev->dev, "Configured GPU PLL1\n");
+    /* Configure PLLs */
+    clk_zonda_pll_configure(&gpu_cc_pll0, regmap, &gpu_cc_pll0_config);
+    dev_info(&pdev->dev, "Configured GPU PLL0\n");
+    clk_lucid_pll_configure(&gpu_cc_pll1, regmap, &gpu_cc_pll1_config);
+    dev_info(&pdev->dev, "Configured GPU PLL1\n");
 
-	/* Recommended WAKEUP/SLEEP settings for the gpu_cc_cx_gmu_clk */
-	mask = CX_GMU_CBCR_WAKE_MASK << CX_GMU_CBCR_WAKE_SHIFT;
-	mask |= CX_GMU_CBCR_SLEEP_MASK << CX_GMU_CBCR_SLEEP_SHIFT;
-	value = 0xf << CX_GMU_CBCR_WAKE_SHIFT | 0xf << CX_GMU_CBCR_SLEEP_SHIFT;
-	regmap_update_bits(regmap, gpu_cc_cx_gmu_clk.clkr.enable_reg,
-								mask, value);
-	dev_info(&pdev->dev, "Applied WAKE/SLEEP settings for gpu_cc_cx_gmu_clk\n");
+    /* Wake/Sleep settings for gpu_cc_cx_gmu_clk */
+    mask = CX_GMU_CBCR_WAKE_MASK << CX_GMU_CBCR_WAKE_SHIFT;
+    mask |= CX_GMU_CBCR_SLEEP_MASK << CX_GMU_CBCR_SLEEP_SHIFT;
+    value = 0xf << CX_GMU_CBCR_WAKE_SHIFT | 0xf << CX_GMU_CBCR_SLEEP_SHIFT;
+    regmap_update_bits(regmap, gpu_cc_cx_gmu_clk.clkr.enable_reg, mask, value);
+    dev_info(&pdev->dev, "Applied WAKE/SLEEP settings for gpu_cc_cx_gmu_clk\n");
 
-	/* Set VDD_L2_HIGH_L2 */
-	mask  = 0xFF;
-	value = VDD_L2_HIGH_L2; // 9
-	regmap_update_bits(regmap, gpu_cc_gx_gfx3d_clk_src.clkr.enable_reg, mask, value);
-	regmap_update_bits(regmap, gpu_cc_cx_gfx3d_clk.clkr.enable_reg, mask, value);
-	dev_info(&pdev->dev, "Set VDD_L2_HIGH_L2 for GPU clocks (value=%u)\n", value);
+    /* Set VDD_L2_HIGH_L2 for GPU clocks */
+    mask  = 0xFF;
+    value = VDD_L2_HIGH_L2; // 1550MHz target
+    regmap_update_bits(regmap, gpu_cc_gx_gfx3d_clk_src.clkr.enable_reg, mask, value);
+    regmap_update_bits(regmap, gpu_cc_cx_gfx3d_clk.clkr.enable_reg, mask, value);
+    dev_info(&pdev->dev, "Set VDD_L2_HIGH_L2 for GPU clocks (value=%u)\n", value);
 
-	ret = qcom_cc_really_probe(pdev, &gpu_cc_khaje_desc, regmap);
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to register GPU CC clocks\n");
-		return ret;
-	}
+    /* Enable main GPU clocks */
+    clk_prepare_enable(&gpu_cc_gx_gfx3d_clk.clkr.hw);
+    clk_prepare_enable(&gpu_cc_cx_gfx3d_clk.clkr.hw);
+    clk_prepare_enable(&gpu_cc_cx_gmu_clk.clkr.hw);
+    dev_info(&pdev->dev, "GPU clocks enabled\n");
 
-	dev_info(&pdev->dev, "Registered GPU CC clocks at 1550MHz L2\n");
+    /* Final registration */
+    ret = qcom_cc_really_probe(pdev, &gpu_cc_khaje_desc, regmap);
+    if (ret) {
+        dev_err(&pdev->dev, "Failed to register GPU CC clocks\n");
+        return ret;
+    }
 
-	return ret;
-}
-
-static void gpu_cc_khaje_sync_state(struct device *dev)
-{
-	dev_info(dev, "Syncing GPU CC clock state...\n");
-	qcom_cc_sync_state(dev, &gpu_cc_khaje_desc);
-	dev_info(dev, "GPU CC clock state synced\n");
+    dev_info(&pdev->dev, "Registered GPU CC clocks at 1550MHz L2\n");
+    return ret;
 }
 
 static struct platform_driver gpu_cc_khaje_driver = {
