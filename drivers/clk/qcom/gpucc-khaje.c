@@ -229,9 +229,9 @@ static const struct freq_tbl ftbl_gpu_cc_gx_gfx3d_clk_src[] = {
 	F(1114800000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(1260000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(1550000000,  P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
-
 	{ }
 };
+
 static struct clk_rcg2 gpu_cc_gx_gfx3d_clk_src = {
 	.cmd_rcgr = 0x101c,
 	.mnd_width = 0,
@@ -482,13 +482,19 @@ static int gpu_cc_khaje_probe(struct platform_device *pdev)
 	regmap_update_bits(regmap, gpu_cc_cx_gmu_clk.clkr.enable_reg,
 								mask, value);
 
+	/*(VDD_L2_HIGH_L2) */
+	mask  = 0xFF;
+	value = 0xFF;
+	regmap_update_bits(regmap, gpu_cc_gx_gfx3d_clk_src.clkr.enable_reg, mask, value);
+	regmap_update_bits(regmap, gpu_cc_cx_gfx3d_clk.clkr.enable_reg, mask, value);
+
 	ret = qcom_cc_really_probe(pdev, &gpu_cc_khaje_desc, regmap);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to register GPU CC clocks\n");
 		return ret;
 	}
 
-	dev_info(&pdev->dev, "Registered GPU CC clocks\n");
+	dev_info(&pdev->dev, "Registered GPU CC clocks at 1550MHz L2\n");
 
 	return ret;
 }
