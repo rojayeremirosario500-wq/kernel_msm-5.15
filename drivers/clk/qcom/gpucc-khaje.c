@@ -458,58 +458,79 @@ MODULE_DEVICE_TABLE(of, gpu_cc_khaje_match_table);
 
 static int gpu_cc_khaje_probe(struct platform_device *pdev)
 {
-    struct regmap *regmap;
-    unsigned int value, mask;
-    int ret;
+	struct regmap *regmap;
+	unsigned int value, mask;
+	int ret;
 
-    dev_info(&pdev->dev, "Starting GPU CC probe (HARDLOCK 1550MHz)...\n");
+	dev_info(&pdev->dev, "gpu_cc-khaje: Starting GPU CC probe...\n");
 
-    regmap = qcom_cc_map(pdev, &gpu_cc_khaje_desc);
-    if (IS_ERR(regmap)) {
-        dev_err(&pdev->dev, "Failed to map GPU CC regmap\n");
-        return PTR_ERR(regmap);
-    }
+	regmap = qcom_cc_map(pdev, &gpu_cc_khaje_desc);
+	if (IS_ERR(regmap)) {
+		dev_err(&pdev->dev, "gpu_cc-khaje: Failed to map GPU CC regmap\n");
+		return PTR_ERR(regmap);
+	}
+	dev_info(&pdev->dev, "gpu_cc-khaje: Regmap successfully mapped (base=%p)\n", regmap);
 
-    dev_info(&pdev->dev, "Regmap mapped\n");
+	/* Keep the clock always-ON: GPU_CC_GX_CXO_CLK */
+	regmap_update_bits(regmap, 0x1060, BIT(0), BIT(0));
+	dev_info(&pdev->dev, "gpu_cc-khaje: GPU_CC_GX_CXO_CLK forced ON (reg 0x1060 BIT0)\n");
 
-    /* PLLs */
-    clk_zonda_pll_configure(&gpu_cc_pll0, regmap, &gpu_cc_pll0_config);
-    clk_lucid_pll_configure(&gpu_cc_pll1, regmap, &gpu_cc_pll1_config);
-    dev_info(&pdev->dev, "PLLs configured\n");
+	/* Configure PLLs */
+	clk_zonda_pll_configure(&gpu_cc_pll0, regmap, &gpu_cc_pll0_config);
+	dev_info(&pdev->dev, "gpu_cc-khaje: Configured GPU PLL0 (zonda)\n");
+	clk_lucid_pll_configure(&gpu_cc_pll1, regmap, &gpu_cc_pll1_config);
+	dev_info(&pdev->dev, "gpu_cc-khaje: Configured GPU PLL1 (lucid)\n");
 
-    /* Wake/Sleep */
-    mask = CX_GMU_CBCR_WAKE_MASK << CX_GMU_CBCR_WAKE_SHIFT;
-    mask |= CX_GMU_CBCR_SLEEP_MASK << CX_GMU_CBCR_SLEEP_SHIFT;
-    value = 0xf << CX_GMU_CBCR_WAKE_SHIFT | 0xf << CX_GMU_CBCR_SLEEP_SHIFT;
-    regmap_update_bits(regmap, gpu_cc_cx_gmu_clk.clkr.enable_reg, mask, value);
-    dev_info(&pdev->dev, "Wake/Sleep applied\n");
+	/* Recommended WAKEUP/SLEEP settings for the gpu_cc_cx_gmu_clk */
+	mask = CX_GMU_CBCR_WAKE_MASK << CX_GMU_CBCR_WAKE_SHIFT;
+	mask |= CX_GMU_CBCR_SLEEP_MASK << CX_GMU_CBCR_SLEEP_SHIFT;
+	value = 0xf << CX_GMU_CBCR_WAKE_SHIFT | 0xf << CX_GMU_CBCR_SLEEP_SHIFT;
+	regmap_update_bits(regmap, gpu_cc_cx_gmu_clk.clkr.enable_reg,
+								mask, value);
+	dev_info(&pdev->dev, "gpu_cc-khaje: Applied WAKE/SLEEP settings for gpu_cc_cx_gmu_clk (reg=0x%x mask=0x%x val=0x%x)\n",
+	         gpu_cc_cx_gmu_clk.clkr.enable_reg, mask, value);
 
-    /* Enable clocks */
-    clk_prepare_enable(&gpu_cc_gx_gfx3d_clk.clkr.hw);
-    clk_prepare_enable(&gpu_cc_cx_gfx3d_clk.clkr.hw);
-    clk_prepare_enable(&gpu_cc_cx_gmu_clk.clkr.hw);
-    dev_info(&pdev->dev, "Main GPU clocks enabled\n");
+	/* Force VDD level index to VDD_L2_HIGH_L2 so the driver's vdd_data allows the top OPP */
+	/* value stored is the corner index (VDD_L2_HIGH_L2). The OPP freq must also be present in
+	 * the freq table (ftbl_gpu_cc_gx_gfx3d_clk_src) for this to take effect.
+	 */
+	mask  = 0xFF;
+	value = VDD_L2_HIGH_L2; /* index for VDD_L2_HIGH_L2 (maps to SUPER_TURBO in vdd tables) */
+	regmap_update_bits(regmap, gpu_cc_gx_gfx3d_clk_src.clkr.enable_reg, mask, value);
+	regmap_update_bits(regmap, gpu_cc_cx_gfx3d_clk.clkr.enable_reg, mask, value);
+	dev_info(&pdev->dev, "gpu_cc-khaje: Set VDD index VDD_L2_HIGH_L2 for GPU clocks (reg_src=0x%x reg_cx=0x%x value=%u)\n",
+	         gpu_cc_gx_gfx3d_clk_src.clkr.enable_reg, gpu_cc_cx_gfx3d_clk.clkr.enable_reg, value);
 
-    /* Hard-lock 1550MHz */
-    ret = clk_set_rate(&gpu_cc_gx_gfx3d_clk_src.clkr.hw, 1550000000);
-    if (ret)
-        dev_err(&pdev->dev, "Failed to set gx_gfx3d_clk_src to 1550MHz\n");
-    else
-        dev_info(&pdev->dev, "gx_gfx3d_clk_src HARD-LOCKED to 1550MHz\n");
+	/* Sanity logs: print the PLLs and parents we set (readback where possible) */
+	{
+		unsigned int r;
 
-    /* Refuerzo: bucle para asegurar rate */
-    ret = clk_set_rate(&gpu_cc_cx_gfx3d_clk.clkr.hw, 1550000000);
-    if (ret)
-        dev_err(&pdev->dev, "Failed to set cx_gfx3d_clk to 1550MHz\n");
-    else
-        dev_info(&pdev->dev, "cx_gfx3d_clk HARD-LOCKED to 1550MHz\n");
+		if (!regmap_read(regmap, gpu_cc_pll0.clkr.hw.init->name ? 0x0 : 0x0, &r))
+			dev_dbg(&pdev->dev, "gpu_cc-khaje: (debug) read reg 0x0 -> 0x%08x\n", r);
 
-    ret = qcom_cc_really_probe(pdev, &gpu_cc_khaje_desc, regmap);
-    if (ret)
-        dev_err(&pdev->dev, "Failed to register GPU CC clocks\n");
+		/* read back pll0 out_main postdiv (offset + post_div shift candidate) */
+		if (!regmap_read(regmap, gpu_cc_pll0_out_main.clkr.hw.init->name ? 0x8 : 0x8, &r))
+			dev_dbg(&pdev->dev, "gpu_cc-khaje: (debug) read pll0_out_main ctrl -> 0x%08x\n", r);
+	}
 
-    dev_info(&pdev->dev, "GPU CC clocks registered HARD-LOCK 1550MHz\n");
-    return ret;
+	/* Final registration of clocks with qcom framework */
+	ret = qcom_cc_really_probe(pdev, &gpu_cc_khaje_desc, regmap);
+	if (ret) {
+		dev_err(&pdev->dev, "gpu_cc-khaje: Failed to register GPU CC clocks (err=%d)\n", ret);
+		return ret;
+	}
+
+	dev_info(&pdev->dev, "gpu_cc-khaje: Registered GPU CC clocks (freq-table includes 1550MHz entry)\n");
+	dev_info(&pdev->dev, "gpu_cc-khaje: Probe finished successfully\n");
+
+	return 0;
+}
+
+static void gpu_cc_khaje_sync_state(struct device *dev)
+{
+	dev_info(dev, "gpu_cc-khaje: Syncing GPU CC clock state...\n");
+	qcom_cc_sync_state(dev, &gpu_cc_khaje_desc);
+	dev_info(dev, "gpu_cc-khaje: GPU CC clock state synced\n");
 }
 
 static struct platform_driver gpu_cc_khaje_driver = {
@@ -523,17 +544,17 @@ static struct platform_driver gpu_cc_khaje_driver = {
 
 static int __init gpu_cc_khaje_init(void)
 {
-	pr_info("Initializing GPU CC Khaje driver...\n");
+	pr_info("gpu_cc-khaje: Initializing GPU CC Khaje driver...\n");
 	return platform_driver_register(&gpu_cc_khaje_driver);
 }
 subsys_initcall(gpu_cc_khaje_init);
 
 static void __exit gpu_cc_khaje_exit(void)
 {
-	pr_info("Exiting GPU CC Khaje driver...\n");
+	pr_info("gpu_cc-khaje: Exiting GPU CC Khaje driver...\n");
 	platform_driver_unregister(&gpu_cc_khaje_driver);
 }
 module_exit(gpu_cc_khaje_exit);
 
-MODULE_DESCRIPTION("QTI GPU_CC KHAJE Driver");
+MODULE_DESCRIPTION("QTI GPU_CC KHAJE Driver (patched: 1550MHz OPP entry enabled)");
 MODULE_LICENSE("GPL v2");
